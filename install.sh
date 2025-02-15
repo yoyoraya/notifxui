@@ -3,6 +3,7 @@
 # تنظیمات اولیه
 PROJECT_DIR="notifx-ui"
 ENV_FILE=".env"
+SERVICE_NAME="notifxui.service"
 
 # ایجاد دایرکتوری پروژه
 echo "Creating project directory: $PROJECT_DIR..."
@@ -28,9 +29,9 @@ TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
 ENV=production
 EOL
 
-# ایجاد فایل bot.py با کد پایتون
-echo "Creating bot.py..."
-cat <<'EOF' > bot.py
+# ایجاد فایل notifxui.py با کد پایتون
+echo "Creating notifxui.py..."
+cat <<'EOF' > notifxui.py
 import logging
 import sqlite3
 import os
@@ -376,6 +377,33 @@ if __name__ == '__main__':
     bot.run()
 EOF
 
+# تنظیم اسکریپت برای اجرای خودکار پس از روشن شدن سیستم
+echo "Setting up auto-start using systemd..."
+
+# ایجاد فایل سرویس systemd
+SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME"
+cat <<EOL | sudo tee $SERVICE_FILE > /dev/null
+[Unit]
+Description=NotifXUI Telegram Bot
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 $PWD/notifxui.py
+WorkingDirectory=$PWD
+Restart=always
+User=$USER
+
+[Install]
+WantedBy=multi-user.target
+EOL
+
+# فعال‌سازی و شروع سرویس
+sudo systemctl daemon-reload
+sudo systemctl enable $SERVICE_NAME
+sudo systemctl start $SERVICE_NAME
+
+echo "NotifXUI service has been set up and started successfully!"
+
 # اجرای ربات
 echo "Starting the bot..."
-python3 bot.py
+python3 notifxui.py
